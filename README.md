@@ -34,7 +34,7 @@ import 'package:dio_scope/dio_scope.dart';
 
 ```yaml
 dependencies:
-  dio_scope: ^0.1.0
+  dio_scope: ^0.2.0
 ```
 
 ## Quick start
@@ -125,7 +125,9 @@ Future<void> loadOrders() async {
 
 `Result` also offers `fold`, `map`, `dataOrNull`, `failureOrNull`, and
 `getOrElse`. `Failure` carries `type` (`FailureType`), `message`,
-`messageDetails`, and `statusCode` — map `FailureType` to your own UI/animation.
+`messageDetails`, `statusCode`, and — for domain semantics the enum can't
+express — an optional `code`, an auto-filled `endpoint` (`<METHOD> <path>`), and
+a free-form `extra` map (see below).
 
 Customize the copy (e.g. from your l10n) once:
 
@@ -138,8 +140,49 @@ DioScope.init(
 );
 ```
 
-For domain-specific server error codes, pass a `dioFailureMapper` to
-`DioScope.init` — `safeCall` calls it first and falls back to the default.
+## Bring your own error model
+
+`FailureType` stays a small, universal enum (network / timeout / 5xx / 401 /
+403 / 404 / 4xx / parsing / cancellation / unknown). Everything project-specific
+layers on top, so the same package fits any backend:
+
+- **`dioFailureMapper`** — a total `Failure? Function(DioException, FailureMessages)`.
+  `safeCall` calls it first and falls back to `Failure.fromDioException` when it
+  returns `null`. Build the whole `Failure` here (localized message via your own
+  l10n at call time, `code`, `extra`, …).
+- **`Failure.code`** — your domain sub-category (`'STORE_CLOSED'`, `'RATE_LIMITED'`,
+  …). Switch on it in the UI; it also flows to the crash reporter.
+- **`Failure.extra`** — presentation data the package must not depend on, e.g. an
+  illustration to show for this failure.
+- **`isExpectedFailure`** — decide what counts as a normal state (kept out of
+  crash reports). Defaults to `kExpectedFailureTypes`; widen it to include your
+  own `code`s.
+
+```dart
+DioScope.init(
+  dioFailureMapper: (e, messages) {
+    final errorType = (e.response?.data is Map)
+        ? e.response!.data['error_type'] as String?
+        : null;
+    if (errorType == 'STORE_CLOSED') {
+      return Failure(
+        type: FailureType.badRequest,
+        code: 'STORE_CLOSED',
+        message: myL10n.storeClosed,          // resolved at call time → localized
+        statusCode: e.response?.statusCode,
+        details: e,
+        extra: {'animation': myAssets.storeClosed},
+      );
+    }
+    return null; // fall back to the built-in mapping
+  },
+  isExpectedFailure: (f) =>
+      kExpectedFailureTypes.contains(f.type) || f.code == 'STORE_CLOSED',
+);
+
+// widget layer
+final anim = failure.extra['animation'] as MyAsset?;
+```
 
 ## Debug console visibility
 

@@ -75,8 +75,9 @@ class DioScope {
   /// [dispose] was called first.
   ///
   /// - [visibility]/[gate] control when the console is active.
-  /// - [crashReporter]/[messages]/[dioFailureMapper] configure `safeCall` in
-  ///   every build mode (even when the console is disabled).
+  /// - [crashReporter]/[messages]/[dioFailureMapper]/[isExpectedFailure]
+  ///   configure `safeCall` in every build mode (even when the console is
+  ///   disabled).
   /// - [environment] labels the System tab (e.g. "development").
   static void init({
     DioScopeVisibility visibility = DioScopeVisibility.debug,
@@ -84,6 +85,7 @@ class DioScope {
     CrashReporter? crashReporter,
     FailureMessages? messages,
     DioFailureMapper? dioFailureMapper,
+    bool Function(Failure failure)? isExpectedFailure,
     DioScopeLogger? logger,
     DebugConsoleOptions console = const DebugConsoleOptions(),
     String? environment,
@@ -99,6 +101,9 @@ class DioScope {
     DioScopeRegistry.messages = messages ?? const FailureMessages();
     DioScopeRegistry.logger = logger ?? DefaultDioScopeLogger();
     DioScopeRegistry.dioFailureMapper = dioFailureMapper;
+    if (isExpectedFailure != null) {
+      DioScopeRegistry.isExpectedFailure = isExpectedFailure;
+    }
 
     if (!isEnabled) {
       DioScopeRegistry.consoleInterceptorFactory = null;
@@ -255,14 +260,18 @@ class DioScope {
 
   static String? _subtitleFor(Failure? failure) {
     if (failure == null) return null;
-    final code = failure.statusCode;
-    return code != null
-        ? 'HTTP $code · ${failure.type.name}'
+    final status = failure.statusCode;
+    final base = status != null
+        ? 'HTTP $status · ${failure.type.name}'
         : failure.type.name;
+    return failure.code != null ? '$base · ${failure.code}' : base;
   }
 
   static String? _sourceFor(Failure? failure) {
-    final details = failure?.details;
+    if (failure == null) return null;
+    final endpoint = failure.endpoint;
+    if (endpoint != null && endpoint.isNotEmpty) return endpoint;
+    final details = failure.details;
     if (details is DioException) {
       final o = details.requestOptions;
       return '${o.method} ${o.path}'.trim();

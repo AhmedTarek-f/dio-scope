@@ -38,6 +38,23 @@ enum FailureType {
   unknown,
 }
 
+/// The [FailureType]s that are normal, expected app states rather than bugs.
+///
+/// These are surfaced to the user and the debug console but are **not**
+/// forwarded to the crash reporter, keeping crash reports signal-rich. This is
+/// the default classification; override it per project via
+/// `DioScope.init(isExpectedFailure: ...)` when a domain [Failure.code] should
+/// also count as expected (e.g. a "store closed" state).
+const Set<FailureType> kExpectedFailureTypes = {
+  FailureType.network,
+  FailureType.timeout,
+  FailureType.cancellation,
+  FailureType.unauthorized,
+  FailureType.forbidden,
+  FailureType.notFound,
+  FailureType.badRequest,
+};
+
 /// An immutable, transport-agnostic description of a failed operation.
 ///
 /// Built automatically by [Failure.fromDioException] inside `safeCall`, or
@@ -66,6 +83,22 @@ class Failure {
   /// The stack trace captured at the failure site, when available.
   final StackTrace? stackTrace;
 
+  /// An optional domain-specific sub-category the coarse [type] can't express
+  /// (e.g. `'STORE_CLOSED'`, `'BRANCH_CLOSED'`). Set it from a `dioFailureMapper`
+  /// and switch on it in your UI. Kept as a free-form string so the package
+  /// never has to know a consumer's business categories.
+  final String? code;
+
+  /// The originating request as `<METHOD> <path>`, when the failure came from a
+  /// [DioException]. Auto-filled by [Failure.fromDioException]; forwarded to the
+  /// crash reporter as a filterable `endpoint` key.
+  final String? endpoint;
+
+  /// A free-form bag for presentation data the package must stay decoupled from
+  /// (e.g. an illustration/animation asset your UI shows for this failure).
+  /// Populate it in your mapper and read it back in the widget layer.
+  final Map<String, Object?> extra;
+
   /// Creates a failure. Prefer the factories below in most code.
   const Failure({
     required this.type,
@@ -74,6 +107,9 @@ class Failure {
     this.statusCode,
     this.details,
     this.stackTrace,
+    this.code,
+    this.endpoint,
+    this.extra = const {},
   });
 
   /// Returns a copy with the given fields replaced.
@@ -84,6 +120,9 @@ class Failure {
     int? statusCode,
     Object? details,
     StackTrace? stackTrace,
+    String? code,
+    String? endpoint,
+    Map<String, Object?>? extra,
   }) {
     return Failure(
       type: type ?? this.type,
@@ -92,6 +131,9 @@ class Failure {
       statusCode: statusCode ?? this.statusCode,
       details: details ?? this.details,
       stackTrace: stackTrace ?? this.stackTrace,
+      code: code ?? this.code,
+      endpoint: endpoint ?? this.endpoint,
+      extra: extra ?? this.extra,
     );
   }
 
@@ -105,7 +147,11 @@ class Failure {
   factory Failure.fromDioException(
     DioException e, {
     FailureMessages messages = const FailureMessages(),
-  }) {
+  }) => _fromDioException(e, messages).copyWith(
+    endpoint: '${e.requestOptions.method} ${e.requestOptions.path}'.trim(),
+  );
+
+  static Failure _fromDioException(DioException e, FailureMessages messages) {
     if (CancelToken.isCancel(e)) {
       return Failure(
         type: FailureType.cancellation,
@@ -251,7 +297,8 @@ class Failure {
 
   @override
   String toString() =>
-      'Failure(type: $type, statusCode: $statusCode, message: $message)';
+      'Failure(type: $type, code: $code, statusCode: $statusCode, '
+      'endpoint: $endpoint, message: $message)';
 
   @override
   bool operator ==(Object other) =>
@@ -259,8 +306,9 @@ class Failure {
       other is Failure &&
           other.type == type &&
           other.statusCode == statusCode &&
-          other.message == message;
+          other.message == message &&
+          other.code == code;
 
   @override
-  int get hashCode => Object.hash(type, statusCode, message);
+  int get hashCode => Object.hash(type, statusCode, message, code);
 }

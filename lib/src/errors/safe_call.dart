@@ -9,19 +9,6 @@ import 'failure.dart';
 import 'failure_messages.dart';
 import 'result.dart';
 
-/// Failure types that are normal, expected app states rather than bugs. These
-/// are surfaced to the user and the debug console but are **not** forwarded to
-/// the [CrashReporter], keeping crash reports signal-rich.
-const Set<FailureType> kExpectedFailureTypes = {
-  FailureType.network,
-  FailureType.timeout,
-  FailureType.cancellation,
-  FailureType.unauthorized,
-  FailureType.forbidden,
-  FailureType.notFound,
-  FailureType.badRequest,
-};
-
 /// Mix into a repository implementation to get [safeCall].
 ///
 /// ```dart
@@ -111,14 +98,17 @@ void _report(
   // Always surface to the in-app console (no-op when the console is disabled).
   DioScopeRegistry.errorSink?.call(error, stack, failure: failure);
 
-  // Forward only genuine bugs to the crash reporter, as non-fatals.
-  if (kExpectedFailureTypes.contains(failure.type)) return;
+  // Forward only genuine bugs to the crash reporter, as non-fatals. The
+  // "expected" classification is consumer-overridable via `DioScope.init`.
+  if (DioScopeRegistry.isExpectedFailure(failure)) return;
 
-  String? endpoint;
-  final details = failure.details;
-  if (details is DioException) {
-    final options = details.requestOptions;
-    endpoint = '${options.method} ${options.path}'.trim();
+  var endpoint = failure.endpoint;
+  if (endpoint == null) {
+    final details = failure.details;
+    if (details is DioException) {
+      final options = details.requestOptions;
+      endpoint = '${options.method} ${options.path}'.trim();
+    }
   }
 
   unawaited(
@@ -128,6 +118,7 @@ void _report(
       reason: failure.message,
       information: {
         'failureType': failure.type.name,
+        if (failure.code != null) 'code': failure.code,
         if (failure.statusCode != null) 'statusCode': failure.statusCode,
         if (endpoint != null) 'endpoint': endpoint,
       },

@@ -47,6 +47,16 @@ class DioScopeRegistry {
   /// Optional domain-specific Dio → Failure mapper.
   static DioFailureMapper? dioFailureMapper;
 
+  /// Classifies a [Failure] as an expected app state — surfaced to the user and
+  /// console but **not** forwarded to the crash reporter. Defaults to
+  /// [kExpectedFailureTypes] membership; override via
+  /// `DioScope.init(isExpectedFailure: ...)` to also treat domain
+  /// [Failure.code]s (e.g. a "store closed" state) as expected.
+  static bool Function(Failure failure) isExpectedFailure = _defaultIsExpected;
+
+  static bool _defaultIsExpected(Failure failure) =>
+      kExpectedFailureTypes.contains(failure.type);
+
   /// Builds the console's capture interceptor. Set by `DioScope.init` (returns a
   /// no-op interceptor when the console is disabled); `null` before init, so
   /// `DioApiClient` simply skips auto-attaching it.
@@ -59,6 +69,7 @@ class DioScopeRegistry {
     logger = DefaultDioScopeLogger();
     errorSink = null;
     dioFailureMapper = null;
+    isExpectedFailure = _defaultIsExpected;
     consoleInterceptorFactory = null;
   }
 }
