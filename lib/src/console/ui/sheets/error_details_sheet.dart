@@ -70,18 +70,24 @@ class _ErrorSheet extends StatelessWidget {
                   Text(entry.subtitle!, style: t.ui(size: 13, color: ConsoleTheme.textSecondary)),
                 ],
                 const SizedBox(height: 15),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _tile(t, 'Source', entry.source ?? 'unknown',
-                          color: ConsoleTheme.textDim2, mono: true),
-                    ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: _tile(t, 'Severity', entry.severity.severityLabel, color: color),
-                    ),
-                  ],
+                // Wrapped in IntrinsicHeight so the equal-height tiles
+                // (crossAxisAlignment.stretch) have a bounded cross-axis extent:
+                // this Row lives inside a ListView, which offers unbounded
+                // height, and stretch alone would force the tiles to infinity.
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _tile(t, 'Source', entry.source ?? 'unknown',
+                            color: ConsoleTheme.textDim2, mono: true),
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: _tile(t, 'Severity', entry.severity.severityLabel, color: color),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 15),
                 Row(
