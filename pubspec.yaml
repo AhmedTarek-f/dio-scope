@@ -1,0 +1,49 @@
+name: dio_scope
+description: >-
+  A fully-customizable Dio HTTP client with a safeCall error boundary,
+  Result/Failure types, and an in-app network & error debug console.
+version: 0.1.0
+repository: https://github.com/your-org/dio_scope
+issue_tracker: https://github.com/your-org/dio_scope/issues
+# TODO(publish): replace the placeholder URLs above with the real repository
+# before running `dart pub publish`.
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.11.1
+  # Wide ranges on purpose: the console's System tab uses only long-stable
+  # fields of these plugins. The upper bound stops before the versions that
+  # require win32 ^6, so a host app pinned to win32-^5 packages (e.g.
+  # flutter_secure_storage 9.x, file_picker 10.x) can still resolve. Newer
+  # majors also work standalone — this package's own lockfile may use them.
+  device_info_plus: ">=11.0.0 <14.0.0"
+  package_info_plus: ">=8.0.0 <11.0.0"
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/cairo/Cairo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/cairo/Cairo-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/cairo/Cairo-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/cairo/Cairo-ExtraBold.ttf
+          weight: 800
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Bold.ttf
+          weight: 700
