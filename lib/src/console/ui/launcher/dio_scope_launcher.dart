@@ -123,6 +123,11 @@ class _DioScopeLauncherState extends State<DioScopeLauncher>
               left: pos.dx,
               top: pos.dy,
               child: GestureDetector(
+                // Reset the drag guard at the start of every gesture. A pure
+                // tap never fires onPanStart, so without this a tap that
+                // follows a drag would still see `_moved == true` and be
+                // swallowed until the State is recreated (app restart).
+                onTapDown: (_) => _moved = false,
                 onPanStart: (_) => setState(() {
                   _dragging = true;
                   _moved = false;

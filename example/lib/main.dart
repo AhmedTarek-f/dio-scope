@@ -174,6 +174,16 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 16),
           _section('Console'),
           _btn('Open console', () => DioScope.showConsole(context)),
+          const SizedBox(height: 16),
+          _section('Navigation (test console back handling)'),
+          _btn(
+            'Open product details',
+            () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const ProductDetailsScreen(),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -201,4 +211,27 @@ class _HomePageState extends State<HomePage> {
       child: Text(label),
     ),
   );
+}
+
+/// A pushed second screen, used to verify that opening the console over it and
+/// pressing the system back / edge-swipe closes the *console* — not this screen
+/// or the whole app.
+class ProductDetailsScreen extends StatelessWidget {
+  /// Creates the demo product-details screen.
+  const ProductDetailsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Product details')),
+      body: const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          'Open the debug console (bug button), then press the system back '
+          'button or edge-swipe. The console should close and leave this '
+          'screen exactly as it is.',
+        ),
+      ),
+    );
+  }
 }

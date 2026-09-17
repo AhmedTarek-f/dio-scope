@@ -4,7 +4,7 @@ import '../../dio_scope.dart';
 import '../theme/console_theme.dart';
 import 'dio_scope_launcher.dart';
 
-/// Wraps your app with the floating debug launcher and the console overlay.
+/// Wraps your app with the floating debug launcher.
 ///
 /// Drop it into `MaterialApp.builder` so the launcher floats above every route:
 ///
@@ -17,9 +17,13 @@ import 'dio_scope_launcher.dart';
 ///
 /// When dio_scope is disabled (release build, or `DioScopeVisibility.disabled`)
 /// this returns [child] untouched, so it is safe to leave in production code.
-/// The console opens as an animated layer hosting its own [Navigator], so it
-/// works from `builder` without a navigator key and its sheets/dialogs behave
-/// normally.
+///
+/// Tapping the launcher opens the console as a full-screen route on your app's
+/// own [Navigator] (located automatically), rather than as a floating layer.
+/// That way the OS back button / edge-swipe — including Android's predictive
+/// back — closes the console (or an open request/error sheet) natively and
+/// never touches the screen behind it, and the console's sheets and dialogs
+/// resolve against the app navigator without any navigator key wiring.
 class DioScopeOverlay extends StatefulWidget {
   /// The app below the overlay (the `child` from `MaterialApp.builder`).
   final Widget child;
@@ -32,7 +36,73 @@ class DioScopeOverlay extends StatefulWidget {
 }
 
 class _DioScopeOverlayState extends State<DioScopeOverlay> {
+  // True while the console route is on screen, so the launcher hides itself
+  // instead of floating on top of the open console.
   bool _open = false;
+
+  void _openConsole() {
+    if (_open) return;
+    final console = DioScope.buildConsole();
+    if (console == null) return;
+    final navigator = _findHostNavigator();
+    if (navigator == null) return;
+    final reduceMotion =
+        DioScope.options.reduceMotion || MediaQuery.of(context).disableAnimations;
+
+    setState(() => _open = true);
+    navigator.push<void>(_consoleRoute(console, reduceMotion)).whenComplete(() {
+      if (mounted) setState(() => _open = false);
+    });
+  }
+
+  // The host Navigator lives inside [DioScopeOverlay.child] (this widget is
+  // installed via MaterialApp.builder, which wraps the app's Navigator). Walk
+  // down to the first NavigatorState so we can open the console as one of its
+  // routes. There is no other Navigator in this subtree, so the first match is
+  // the host navigator.
+  NavigatorState? _findHostNavigator() {
+    NavigatorState? result;
+    void visitor(Element element) {
+      if (result != null) return;
+      if (element is StatefulElement && element.state is NavigatorState) {
+        result = element.state as NavigatorState;
+        return;
+      }
+      element.visitChildren(visitor);
+    }
+
+    context.visitChildElements(visitor);
+    return result;
+  }
+
+  // A full-screen route carrying the design's fade + scale-from-bottom-left
+  // entrance. `onClose` is left null so the console's back button pops this
+  // route (see ConsoleScreen); the OS back gesture pops it the same way.
+  Route<void> _consoleRoute(Widget console, bool reduceMotion) {
+    return PageRouteBuilder<void>(
+      transitionDuration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 340),
+      reverseTransitionDuration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 260),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          ColoredBox(color: ConsoleTheme.background, child: console),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        if (reduceMotion) return child;
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: const Cubic(0.2, 0.8, 0.3, 1),
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
+            alignment: Alignment.bottomLeft,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +118,7 @@ class _DioScopeOverlayState extends State<DioScopeOverlay> {
         if (options.showLauncher && !_open)
           Positioned.fill(
             child: DioScopeLauncher(
-              onTap: () => setState(() => _open = true),
+              onTap: _openConsole,
               accent: options.accent,
               errorManager: DioScope.errorManager,
               networkManager: DioScope.networkManager,
@@ -56,78 +126,7 @@ class _DioScopeOverlayState extends State<DioScopeOverlay> {
               reduceMotion: reduceMotion,
             ),
           ),
-        if (_open)
-          Positioned.fill(
-            child: _ConsoleOverlay(
-              reduceMotion: reduceMotion,
-              onClose: () => setState(() => _open = false),
-            ),
-          ),
       ],
-    );
-  }
-}
-
-class _ConsoleOverlay extends StatefulWidget {
-  const _ConsoleOverlay({required this.onClose, required this.reduceMotion});
-
-  final VoidCallback onClose;
-  final bool reduceMotion;
-
-  @override
-  State<_ConsoleOverlay> createState() => _ConsoleOverlayState();
-}
-
-class _ConsoleOverlayState extends State<_ConsoleOverlay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 340),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.reduceMotion) {
-      _controller.value = 1;
-    } else {
-      _controller.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final console = DioScope.buildConsole(onClose: widget.onClose);
-    if (console == null) return const SizedBox.shrink();
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: const Cubic(0.2, 0.8, 0.3, 1),
-    );
-    return FadeTransition(
-      opacity: curved,
-      child: ScaleTransition(
-        scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
-        alignment: Alignment.bottomLeft,
-        child: ColoredBox(
-          color: ConsoleTheme.background,
-          // The console runs in its own nested Navigator (so its sheets/dialogs
-          // work when opened from MaterialApp.builder). Give it its own hero
-          // scope so it doesn't clash with the app's HeroController.
-          child: HeroControllerScope.none(
-            child: Navigator(
-              onGenerateInitialRoutes: (navigator, initialRoute) => [
-                MaterialPageRoute<void>(builder: (_) => console),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
