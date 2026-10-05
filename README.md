@@ -34,7 +34,7 @@ import 'package:dio_scope/dio_scope.dart';
 
 ```yaml
 dependencies:
-  dio_scope: ^0.2.0
+  dio_scope: ^0.3.0
 ```
 
 ## Quick start
@@ -129,16 +129,37 @@ Future<void> loadOrders() async {
 express — an optional `code`, an auto-filled `endpoint` (`<METHOD> <path>`), and
 a free-form `extra` map (see below).
 
-Customize the copy (e.g. from your l10n) once:
+Failure copy ships in **English and Arabic**. Give `init` a resolver for the
+app's current locale. It is called on every failure, so the copy follows an
+in-app language switch with no boot-time snapshot:
 
 ```dart
 DioScope.init(
-  messages: FailureMessages(
-    network: context.l10n.noInternet,
-    unauthorized: context.l10n.sessionExpired,
-  ),
+  locale: () {
+    final context = navigatorKey.currentContext;
+    return context == null ? null : Localizations.maybeLocaleOf(context);
+  },
 );
 ```
+
+Reword a language, or add one, with `localizedMessages` (merged over the
+built-in `FailureMessages.builtIn`). `messages` is the copy used when no
+locale resolves or its language has no entry (English by default):
+
+```dart
+DioScope.init(
+  locale: currentLocale,
+  localizedMessages: {
+    'ar': FailureMessages.arabic.copyWith(network: 'تحقق من اتصالك.'),
+    'fr': const FailureMessages(network: 'Pas de connexion internet.'),
+  },
+  messages: FailureMessages.english,
+);
+```
+
+The same resolved copy is what `safeCall`'s own boundary uses (parsing /
+unknown), what your `dioFailureMapper` receives as `messages`, and what
+`Failure.unknown(e)` / `Failure.parsing(e)` use when called directly.
 
 ## Bring your own error model
 
@@ -148,8 +169,9 @@ layers on top, so the same package fits any backend:
 
 - **`dioFailureMapper`** — a total `Failure? Function(DioException, FailureMessages)`.
   `safeCall` calls it first and falls back to `Failure.fromDioException` when it
-  returns `null`. Build the whole `Failure` here (localized message via your own
-  l10n at call time, `code`, `extra`, …).
+  returns `null`. Build the whole `Failure` here: transport copy from the
+  locale-resolved `messages` it receives, domain copy from your own l10n at call
+  time, plus `code`, `extra`, and so on.
 - **`Failure.code`** — your domain sub-category (`'STORE_CLOSED'`, `'RATE_LIMITED'`,
   …). Switch on it in the UI; it also flows to the crash reporter.
 - **`Failure.extra`** — presentation data the package must not depend on, e.g. an

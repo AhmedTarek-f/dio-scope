@@ -50,7 +50,8 @@ class DioScope {
   /// The active crash reporter (also used by `safeCall`).
   static CrashReporter get crashReporter => DioScopeRegistry.crashReporter;
 
-  /// The active failure messages (also used by `safeCall`).
+  /// The active failure messages (also used by `safeCall`), resolved for the
+  /// current locale at the moment you read it — see `init(locale:)`.
   static FailureMessages get failureMessages => DioScopeRegistry.messages;
 
   /// The console options in effect.
@@ -78,12 +79,20 @@ class DioScope {
   /// - [crashReporter]/[messages]/[dioFailureMapper]/[isExpectedFailure]
   ///   configure `safeCall` in every build mode (even when the console is
   ///   disabled).
+  /// - [locale] returns the app's current locale. It is called on every
+  ///   failure, so the copy follows an in-app language switch. Each failure
+  ///   picks the [localizedMessages] entry for that language: the built-in
+  ///   English/Arabic ([FailureMessages.builtIn]), merged with any overrides
+  ///   you pass. [messages] is the copy used when no locale resolves or its
+  ///   language has no entry (English by default).
   /// - [environment] labels the System tab (e.g. "development").
   static void init({
     DioScopeVisibility visibility = DioScopeVisibility.debug,
     bool Function()? gate,
     CrashReporter? crashReporter,
     FailureMessages? messages,
+    Locale? Function()? locale,
+    Map<String, FailureMessages>? localizedMessages,
     DioFailureMapper? dioFailureMapper,
     bool Function(Failure failure)? isExpectedFailure,
     DioScopeLogger? logger,
@@ -98,7 +107,12 @@ class DioScope {
     // Always configure the shared core so `safeCall` and the logger behave
     // identically regardless of whether the console UI is enabled.
     DioScopeRegistry.crashReporter = crashReporter ?? const NoopCrashReporter();
-    DioScopeRegistry.messages = messages ?? const FailureMessages();
+    DioScopeRegistry.baseMessages = messages ?? const FailureMessages();
+    DioScopeRegistry.localeResolver = locale;
+    DioScopeRegistry.localizedMessages = {
+      ...FailureMessages.builtIn,
+      ...?localizedMessages,
+    };
     DioScopeRegistry.logger = logger ?? DefaultDioScopeLogger();
     DioScopeRegistry.dioFailureMapper = dioFailureMapper;
     if (isExpectedFailure != null) {

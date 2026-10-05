@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../dio_scope_registry.dart';
 import 'failure_messages.dart';
 
 /// A coarse classification of why a request failed. Map this to your own UI
@@ -137,7 +138,9 @@ class Failure {
     );
   }
 
-  /// Maps a [DioException] to a [Failure] using [messages] for default copy.
+  /// Maps a [DioException] to a [Failure] using [messages] for default copy
+  /// (when omitted, the copy registered via `DioScope.init`, resolved for the
+  /// current locale).
   ///
   /// When the server returns a body, its `message`/`error` field is preferred
   /// over the default text, and a list under `errors` is joined into
@@ -146,8 +149,8 @@ class Failure {
   /// falls back to this default when it returns `null`.
   factory Failure.fromDioException(
     DioException e, {
-    FailureMessages messages = const FailureMessages(),
-  }) => _fromDioException(e, messages).copyWith(
+    FailureMessages? messages,
+  }) => _fromDioException(e, messages ?? DioScopeRegistry.messages).copyWith(
     endpoint: '${e.requestOptions.method} ${e.requestOptions.path}'.trim(),
   );
 
@@ -219,29 +222,31 @@ class Failure {
     return Failure(type: type, message: message, statusCode: statusCode);
   }
 
-  /// A response-parsing/deserialization failure.
+  /// A response-parsing/deserialization failure. [messages] defaults to the
+  /// copy registered via `DioScope.init`, resolved for the current locale.
   factory Failure.parsing(
     Object? details, {
     StackTrace? stackTrace,
-    FailureMessages messages = const FailureMessages(),
+    FailureMessages? messages,
   }) {
     return Failure(
       type: FailureType.parsing,
-      message: messages.parsing,
+      message: (messages ?? DioScopeRegistry.messages).parsing,
       details: details,
       stackTrace: stackTrace,
     );
   }
 
-  /// A catch-all failure for unexpected errors.
+  /// A catch-all failure for unexpected errors. [messages] defaults to the
+  /// copy registered via `DioScope.init`, resolved for the current locale.
   factory Failure.unknown(
     Object? details, {
     StackTrace? stackTrace,
-    FailureMessages messages = const FailureMessages(),
+    FailureMessages? messages,
   }) {
     return Failure(
       type: FailureType.unknown,
-      message: messages.unknown,
+      message: (messages ?? DioScopeRegistry.messages).unknown,
       details: details,
       stackTrace: stackTrace,
     );

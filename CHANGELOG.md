@@ -1,3 +1,27 @@
+## 0.3.0
+
+Built-in, live-localized failure copy, so an app no longer needs its own
+`FailureMessages` glue.
+
+- **Built-in English + Arabic** — `FailureMessages.english` (the existing
+  defaults, unchanged) and `FailureMessages.arabic`, keyed by language code in
+  `FailureMessages.builtIn`.
+- **`DioScope.init(locale:)`** — a `Locale? Function()` resolver called on
+  **every** failure, so the copy follows an in-app language switch (no boot-time
+  snapshot). The `messages` handed to `dioFailureMapper`, `SafeApiCall`'s
+  `failureMessages`, `safeApiCall` and `DioScope.failureMessages` all use it.
+- **`DioScope.init(localizedMessages:)`** — per-language overrides merged over
+  the built-ins (e.g. `{'ar': FailureMessages.arabic.copyWith(...)}`), or extra
+  languages.
+- `messages:` is now the copy used when no locale resolves, the resolver
+  returns `null` or throws, or the language has no entry.
+- `Failure.fromDioException` / `Failure.parsing` / `Failure.unknown` now
+  default `messages` to the registered (locale-resolved) copy instead of a
+  fixed English `FailureMessages()`.
+
+Backward-compatible: without `locale:` everything resolves to `messages:`
+(English by default), exactly as in 0.2.0.
+
 ## 0.2.0
 
 Pluggable, per-project error model — `Failure` is no longer a fixed shape.

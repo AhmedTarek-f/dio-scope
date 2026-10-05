@@ -1,10 +1,17 @@
 import 'failure.dart';
 
-/// User-facing messages for each [FailureType], with sensible English defaults.
+/// User-facing messages for each [FailureType].
 ///
-/// dio_scope does not bundle a localization framework. Provide your own strings
-/// (already translated by your app's l10n) by constructing a [FailureMessages]
-/// and registering it via `DioScope.init(messages: ...)`, or pass one to
+/// dio_scope ships built-in copy in English ([english], also the defaults of
+/// the constructor) and Arabic ([arabic]), keyed by language code in
+/// [builtIn]. Pass a live locale resolver to `DioScope.init(locale: ...)` and
+/// every failure picks its copy from the current language **at failure time**,
+/// so it follows an in-app language switch with no static snapshot.
+///
+/// To change the wording, override a language (or add one) with
+/// `DioScope.init(localizedMessages: {'ar': FailureMessages.arabic.copyWith(...)})`.
+/// `DioScope.init(messages: ...)` sets the copy used when no locale resolves
+/// (or its language has no entry). You can also pass one directly to
 /// [safeApiCall]. Every field has a default so you can override only what you
 /// need with [copyWith].
 class FailureMessages {
@@ -56,6 +63,31 @@ class FailureMessages {
     this.badCertificate = 'A secure connection could not be established.',
     this.unknown = 'Something went wrong. Please try again.',
   });
+
+  /// The built-in English copy (identical to the constructor's defaults).
+  static const FailureMessages english = FailureMessages();
+
+  /// The built-in Arabic copy.
+  static const FailureMessages arabic = FailureMessages(
+    network:
+        'لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة والمحاولة مرة أخرى.',
+    timeout: 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.',
+    server: 'حدث خطأ من جهتنا. يرجى المحاولة مرة أخرى لاحقًا.',
+    unauthorized: 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
+    forbidden: 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
+    notFound: 'المورد المطلوب غير موجود.',
+    badRequest: 'يرجى التحقق من البيانات المدخلة والمحاولة مرة أخرى.',
+    parsing: 'تعذّرت قراءة استجابة الخادم. يرجى المحاولة مرة أخرى.',
+    cancellation: 'تم إلغاء الطلب.',
+    badCertificate: 'تعذّر إنشاء اتصال آمن.',
+    unknown: 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',
+  );
+
+  /// Every built-in language, keyed by `Locale.languageCode`.
+  static const Map<String, FailureMessages> builtIn = {
+    'en': english,
+    'ar': arabic,
+  };
 
   /// Returns the message configured for [type].
   String forType(FailureType type) => switch (type) {

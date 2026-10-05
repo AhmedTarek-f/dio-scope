@@ -24,11 +24,14 @@ import 'result.dart';
 ///
 /// The [crashReporter] and [failureMessages] default to whatever was registered
 /// via `DioScope.init`; override the getters if a repo needs something specific.
+/// [failureMessages] is resolved for the current locale on every call (see
+/// `DioScope.init(locale:)`), so a repo never needs its own localization glue.
 mixin SafeApiCall {
   /// The crash reporter used for genuine-bug failures.
   CrashReporter get crashReporter => DioScopeRegistry.crashReporter;
 
-  /// The messages used to build default [Failure] copy.
+  /// The messages used to build default [Failure] copy — the registered copy
+  /// for the current locale, read fresh on every `safeCall`.
   FailureMessages get failureMessages => DioScopeRegistry.messages;
 
   /// Runs [action], converting any throw into a [FailureResult].
@@ -37,6 +40,7 @@ mixin SafeApiCall {
 }
 
 /// Standalone equivalent of [SafeApiCall.safeCall] for code that cannot mix in.
+/// [messages] defaults to the registered copy for the current locale.
 ///
 /// ```dart
 /// final result = await safeApiCall(() => api.get('/me'));
