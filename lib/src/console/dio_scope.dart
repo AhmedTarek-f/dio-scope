@@ -107,7 +107,7 @@ class DioScope {
     // Always configure the shared core so `safeCall` and the logger behave
     // identically regardless of whether the console UI is enabled.
     DioScopeRegistry.crashReporter = crashReporter ?? const NoopCrashReporter();
-    DioScopeRegistry.baseMessages = messages ?? const FailureMessages();
+    DioScopeRegistry.baseMessages = messages ?? FailureMessages.english;
     DioScopeRegistry.localeResolver = locale;
     DioScopeRegistry.localizedMessages = {
       ...FailureMessages.builtIn,

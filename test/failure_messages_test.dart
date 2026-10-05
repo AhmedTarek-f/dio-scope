@@ -8,12 +8,22 @@ void main() {
     expect(FailureMessages.builtIn['ar'], same(FailureMessages.arabic));
   });
 
-  test('english is exactly the constructor defaults', () {
-    const defaults = FailureMessages();
+  test('every English message is filled in', () {
     for (final type in FailureType.values) {
-      expect(FailureMessages.english.forType(type), defaults.forType(type));
+      expect(
+        FailureMessages.english.forType(type).trim(),
+        isNotEmpty,
+        reason: '$type',
+      );
     }
-    expect(FailureMessages.english.badCertificate, defaults.badCertificate);
+    expect(FailureMessages.english.badCertificate.trim(), isNotEmpty);
+  });
+
+  test('copyWith rewords only the given messages', () {
+    final custom = FailureMessages.english.copyWith(network: 'Offline');
+    expect(custom.network, 'Offline');
+    expect(custom.timeout, FailureMessages.english.timeout);
+    expect(custom.unknown, FailureMessages.english.unknown);
   });
 
   test('every Arabic message is filled in and translated', () {

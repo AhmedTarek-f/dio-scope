@@ -39,7 +39,7 @@ class DioScopeRegistry {
   /// The copy used when no locale resolves, or its language has no entry in
   /// [localizedMessages]. Set by `DioScope.init(messages: ...)`; defaults to
   /// English.
-  static FailureMessages baseMessages = const FailureMessages();
+  static FailureMessages baseMessages = FailureMessages.english;
 
   /// Returns the app's current locale; called on every [messages] read so the
   /// copy follows an in-app language switch. `null` (the default) means
@@ -96,7 +96,7 @@ class DioScopeRegistry {
   /// Resets everything to defaults. Used by `DioScope.dispose` and tests.
   static void reset() {
     crashReporter = const NoopCrashReporter();
-    baseMessages = const FailureMessages();
+    baseMessages = FailureMessages.english;
     localeResolver = null;
     localizedMessages = FailureMessages.builtIn;
     logger = DefaultDioScopeLogger();

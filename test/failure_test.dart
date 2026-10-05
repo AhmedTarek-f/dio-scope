@@ -91,7 +91,9 @@ void main() {
     });
 
     test('uses custom messages when provided', () {
-      const messages = FailureMessages(timeout: 'اتصال انتهت مهلته');
+      final messages = FailureMessages.english.copyWith(
+        timeout: 'اتصال انتهت مهلته',
+      );
       final f = Failure.fromDioException(
         _dio(DioExceptionType.receiveTimeout),
         messages: messages,

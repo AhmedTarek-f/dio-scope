@@ -34,7 +34,7 @@ import 'package:dio_scope/dio_scope.dart';
 
 ```yaml
 dependencies:
-  dio_scope: ^0.3.0
+  dio_scope: ^0.4.0
 ```
 
 ## Quick start
@@ -142,16 +142,24 @@ DioScope.init(
 );
 ```
 
-Reword a language, or add one, with `localizedMessages` (merged over the
-built-in `FailureMessages.builtIn`). `messages` is the copy used when no
-locale resolves or its language has no entry (English by default):
+Your own copy is optional. Reword a language, or add one, with
+`localizedMessages` (merged over the built-in `FailureMessages.builtIn`); any
+language you don't override keeps the built-in copy. `messages` is the copy
+used when no locale resolves or its language has no entry
+(`FailureMessages.english` by default). To reword a few strings, start from a
+built-in set with `copyWith`; a brand-new language passes all 11 messages to the
+`FailureMessages(...)` constructor:
 
 ```dart
 DioScope.init(
   locale: currentLocale,
   localizedMessages: {
     'ar': FailureMessages.arabic.copyWith(network: 'تحقق من اتصالك.'),
-    'fr': const FailureMessages(network: 'Pas de connexion internet.'),
+    'fr': const FailureMessages(
+      network: 'Pas de connexion internet.',
+      timeout: 'La connexion a expiré. Veuillez réessayer.',
+      // …every other message is required too
+    ),
   },
   messages: FailureMessages.english,
 );

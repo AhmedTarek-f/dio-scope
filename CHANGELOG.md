@@ -1,3 +1,18 @@
+## 0.4.0
+
+The English failure copy is now an explicit, package-owned set, written out like
+the Arabic one.
+
+- **Breaking:** every `FailureMessages` constructor field is now `required`,
+  and the English text moved from the constructor's defaults into
+  `FailureMessages.english`, so each string exists in one place. Migration:
+  - `const FailureMessages()` → `FailureMessages.english`
+  - `FailureMessages(network: '…')` (partial) →
+    `FailureMessages.english.copyWith(network: '…')`
+  - A full `FailureMessages(...)` passing every field is unaffected.
+- No change in behaviour or copy: the English and Arabic text are identical to
+  0.3.0.
+
 ## 0.3.0
 
 Built-in, live-localized failure copy, so an app no longer needs its own

@@ -31,7 +31,7 @@ void main() {
   test('init configures the crash reporter even when disabled', () {
     DioScope.init(
       visibility: DioScopeVisibility.disabled,
-      messages: const FailureMessages(unknown: 'custom'),
+      messages: FailureMessages.english.copyWith(unknown: 'custom'),
     );
     expect(DioScope.failureMessages.unknown, 'custom');
   });

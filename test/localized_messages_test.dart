@@ -79,7 +79,7 @@ void main() {
   });
 
   group('falls back to `messages`', () {
-    const base = FailureMessages(unknown: 'base');
+    final base = FailureMessages.english.copyWith(unknown: 'base');
 
     test('when the resolver returns null', () {
       init(locale: () => null, messages: base);
@@ -103,7 +103,7 @@ void main() {
       locale: () => current,
       localizedMessages: {
         'ar': FailureMessages.arabic.copyWith(network: 'مخصص'),
-        'fr': const FailureMessages(network: 'Pas de connexion'),
+        'fr': FailureMessages.english.copyWith(network: 'Pas de connexion'),
       },
     );
     expect(DioScope.failureMessages.network, 'مخصص');
