@@ -227,14 +227,13 @@ class _RequestCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 MethodBadge(entry.method),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     entry.path,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: t.mono(
                       size: 13,
                       weight: FontWeight.w500,
